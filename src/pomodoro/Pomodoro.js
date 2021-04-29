@@ -2,7 +2,8 @@ import React, { useState } from "react";
 import classNames from "../utils/class-names";
 import useInterval from "../utils/useInterval";
 import {minutesToDuration} from "../utils/duration";
-import CountdownTimer from "../pomodoro/CountdownTimer.js";
+//import CountdownTimer from "../pomodoro/CountdownTimer.js";
+import ActiveSession from "../pomodoro/ActiveSession";
 
 // These functions are defined outside of the component to insure they do not have access to state
 // and are, therefore more likely to be pure.
@@ -61,7 +62,6 @@ function Pomodoro() {
     event.preventDefault();
     if(event.target.id === "increaseFocus" && focusDuration < 60) setFocusDuration(focusDuration + 5)
     else if (event.target.id === "decreaseFocus" && focusDuration > 5) setFocusDuration(focusDuration - 5);
-    //console.log(event.target.id==="increaseFocus");
   };
 
 
@@ -70,7 +70,6 @@ function Pomodoro() {
     event.preventDefault();
     if (event.target.id === "increaseBreak" && breakDuration < 15) setBreakDuration(breakDuration + 1)
     else if (event.target.id === "decreaseBreak" && breakDuration > 1) setBreakDuration(breakDuration - 1);
-    //console.log(event.target.id==="increaseBreak");
   };
 
   /**
@@ -83,15 +82,33 @@ function Pomodoro() {
         new Audio("https://bigsoundbank.com/UPLOAD/mp3/1482.mp3").play();
         return setSession(nextSession(focusDuration, breakDuration));
       }
+      if (session.label==="Focusing"){
       setProgressBar(((focusDuration*60-session.timeRemaining)/(focusDuration*60))*100);
-      //console.log(progressBar);
-      //console.log((focusDuration*60-session.timeRemaining)/(focusDuration*60));
+      } else if(session.label==="On Break") {
+        setProgressBar(((breakDuration*60-session.timeRemaining)/(breakDuration*60))*100);
+      }
       return setSession(nextTick);
     },
     isTimerRunning ? 1000 : null
   );
 
   const [progressBar, setProgressBar] = useState(0);
+
+  const [stopped, setStopped] = useState(true);
+
+  const [disableStop, setDisableStop] = useState(true);
+
+  const handleStop = () => {
+    setDisableStop(true);
+    setStopped(!stopped);
+    setIsTimerRunning((prevState) => {
+      if (!prevState) return prevState
+      else {
+        const nextState = !prevState;
+        return nextState;
+      };
+    });
+  };
 
 
   /**
@@ -100,23 +117,31 @@ function Pomodoro() {
   function playPause() {
     setIsTimerRunning((prevState) => {
       const nextState = !prevState;
+      setDisableStop(false);
       if (nextState) {
         setSession((prevStateSession) => {
           // If the timer is starting and the previous session is null,
           // start a focusing session.
           if (prevStateSession === null) {
+            setStopped(false);
             return {
               label: "Focusing",
               timeRemaining: focusDuration * 60,
             };
-            //setProgressBar((focusDuration*60-session.timeRemaining)/(focusDuration*60)*100);
-          }
-          //setProgressBar((focusDuration*60-session.timeRemaining)/(focusDuration*60)*100);
-          //console.log(session.timeRemaining);
+          } else if (prevStateSession.label==="Focusing" && prevStateSession.timeRemaining===0){
+            return {
+              label: "On Break",
+              timeRemaining: breakDuration * 60,
+            };
+          } else if (prevStateSession.label==="On Break" && prevStateSession.timeRemaining===0){
+            return {
+              label: "Focusing",
+              timeRemaining: focusDuration * 60
+            };
+          };
+          setStopped(false);
           return prevStateSession;
         });
-        //setProgressBar((focusDuration*60-session.timeRemaining)/(focusDuration*60)*100);
-        //console.log(progressBar);
       }
       return nextState;
     });
@@ -218,28 +243,31 @@ function Pomodoro() {
             {/* TODO: Disable the stop button when there is no active session */}
             <button
               type="button"
+              disabled={disableStop}
               className="btn btn-secondary"
               data-testid="stop"
               title="Stop the session"
+              onClick={handleStop}
             >
               <span className="oi oi-media-stop" />
             </button>
           </div>
         </div>
       </div>
-      <div>
+      <ActiveSession session={session} progressBar={progressBar} stopped={stopped} focusDuration={focusDuration} breakDuration={breakDuration}/>
+     {/* <div>*/}
         {/* TODO: This area should show only when there is an active focus or break - i.e. the session is running or is paused */}
-        <div className="row mb-2">
-          <div className="col">
+        {/*<div className="row mb-2">
+          <div className="col">*/}
             {/* TODO: Update message below to include current session (Focusing or On Break) total duration */}
-            <h2 data-testid="session-title">
+            {/*<h2 data-testid="session-title">
               {session?.label} for 25:00 minutes
-            </h2>
+        </h2>*/}
             {/* TODO: Update message below correctly format the time remaining in the current session */}
             {/*<p className="lead" data-testid="session-sub-title">
               {session ? secondsToDuration(session.timeRemaining) : null } remaining
               </p>*/}
-            <CountdownTimer session={session} />
+            {/*<CountdownTimer session={session} />
           </div>
         </div>
         <div className="row mb-2">
@@ -251,12 +279,12 @@ function Pomodoro() {
                 aria-valuemin="0"
                 aria-valuemax="100"
                 aria-valuenow={progressBar} // TODO: Increase aria-valuenow as elapsed time increases
-                style={{ width: progressBar+"%" }} // TODO: Increase width % as elapsed time increases
-              />
+            style={{ width: progressBar+"%" }} // TODO: Increase width % as elapsed time increases
+            />
             </div>
           </div>
-        </div>
-      </div>
+            </div>
+            </div>*/}
     </div>
   );
 }
