@@ -13,9 +13,6 @@ function ActiveSession({ session, progressBar, stopped, focusDuration, breakDura
             {session?.label} for {session?.label==="Focusing" ? minutesToDuration(focusDuration) : minutesToDuration(breakDuration)} minutes
           </h2>
           {/* TODO: Update message below correctly format the time remaining in the current session */}
-          {/*<p className="lead" data-testid="session-sub-title">
-          {session ? secondsToDuration(session.timeRemaining) : null } remaining
-          </p>*/}
           <CountdownTimer session={session} />
         </div>
       </div>
